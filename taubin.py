@@ -7,68 +7,77 @@ from vtk.util import numpy_support
 from scipy.ndimage import gaussian_filter1d
 
 def load_file(filename):
-    reader = vtk.vtkPLYReader()
+    if filename.endswith('.ply'):
+        reader = vtk.vtkPLYReader()
+    else:
+        reader = vtk.vtkSTLReader()
     reader.SetFileName(filename)
     reader.Update()
     return reader.GetOutput()
 
-def taubin_smooth(poly, l, m):
-    np = poly.GetNumberOfPoints()
-    X, Y, Z = numpy_support.vtk_to_numpy(poly.GetPoints().GetData()).transpose()
-    W = numpy.zeros((np, np))
-    I = numpy.identity(np)
-
-    for i in xrange(np):
-        for j in xrange(np):
-            if i != j :
-                if poly.IsEdge(i, j):
-                    W[i, j] += 1
-    W = 1.0 / W
-    W[W == numpy.inf] = 0
-    K = numpy.matrix(I - W)
-    for i in xrange(10):
-        
-        if i%2:
-            t = I - m*K
+def calculate_d(mesh, pid):
+    tx, ty, tz = 0, 0, 0
+    n = 0.0
+    cids = vtk.vtkIdList()
+    p = mesh.GetPoint(pid)
+    mesh.GetPointCells(pid, cids)
+    for i in xrange(cids.GetNumberOfIds()):
+        point_ids = vtk.vtkIdList()
+        mesh.GetCellPoints(cids.GetId(i), point_ids)
+        n += 1
+        if point_ids.GetId(0) != pid:
+            np = mesh.GetPoint(point_ids.GetId(0))
         else:
-            t = I - l*K
+            np = mesh.GetPoint(point_ids.GetId(1))
 
-        print t.shape, X.shape
+        tx = tx + (np[0] - p[0])
+        ty = ty + (np[1] - p[1])
+        tz = tz + (np[2] - p[2])
 
-        dx = X*t
-        dy = Y*t
-        dz = Z*t
+    return tx / n, ty / n, tz / n
 
-        X[:] = dx
-        Y[:] = dy
-        Z[:] = dz
+        
 
-    return X, Y, Z, np
+def taubin_smooth(poly, l, m):
+    trianglefilter = vtk.vtkTriangleFilter()
+    trianglefilter.SetInput(poly)
+    trianglefilter.Update()
 
+    edgesfilter = vtk.vtkExtractEdges()
+    edgesfilter.SetInput(poly)
+    edgesfilter.Update()
+
+    edges = edgesfilter.GetOutput()
+
+    D = {}
+    for i in xrange(edges.GetNumberOfPoints()):
+        D[i] = calculate_d(edges, i)
+
+    points = poly.GetPoints()
+    for s in xrange(10):
+        for i in xrange(poly.GetNumberOfPoints()):
+            x, y, z = points.GetPoint(i)
+            if s%2 == 0:
+                x = x + l*D[i][0]
+                y = y + l*D[i][1]
+                z = z + l*D[i][2]
+            else:
+                x = x + m*D[i][0]
+                y = y + m*D[i][1]
+                z = z + m*D[i][2]
+            points.SetPoint(i, x, y, z)
+
+    poly.SetPoints(points)
     
 
 def main():
-    poly = load_file('monkey.ply')
-    poly.BuildLinks(0)
-
-    X, Y, Z, np =taubin_smooth(poly, 0.5, -0.53)
-
-    V = numpy.zeros((np, 3))
-    V[:,0] = X
-    V[:,1] = Y
-    V[:,2] = Z
-
-
-    new_polydata = vtk.vtkPolyData()
-    new_polydata.DeepCopy(poly)
-    new_polydata.GetPoints().SetData(numpy_support.numpy_to_vtk(V))
-    new_polydata.Update()
-    #new_polydata.BuildLinks(0)
-    #new_polydata.BuildCells()
+    poly = load_file(sys.argv[1])
+    taubin_smooth(poly, 0.5, -0.53)
 
     w = vtk.vtkSTLWriter()
-    w.SetFileName('/tmp/teste.stl')
-    w.SetInput(new_polydata)
+    w.SetFileName(sys.argv[2])
+    w.SetInput(poly)
+    w.SetFileTypeToBinary()
     w.Write()
 
 if __name__ == '__main__':
