@@ -12,54 +12,63 @@ def load_file(filename):
     reader.Update()
     return reader.GetOutput()
 
-def main():
-    poly = load_file('monkey.ply')
-    poly.BuildLinks(0)
+def taubin_smooth(poly, l, m):
     np = poly.GetNumberOfPoints()
-
-    Ls = numpy.zeros((np, np))
     X, Y, Z = numpy_support.vtk_to_numpy(poly.GetPoints().GetData()).transpose()
+    W = numpy.zeros((np, np))
+    I = numpy.identity(np)
 
     for i in xrange(np):
         for j in xrange(np):
             if i != j :
                 if poly.IsEdge(i, j):
-                    Ls[i, j] = -1
-                    Ls[i, i] += 1
+                    W[i, j] += 1
+    W = 1.0 / W
+    W[W == numpy.inf] = 0
+    K = numpy.matrix(I - W)
+    for i in xrange(10):
+        
+        if i%2:
+            t = I - m*K
+        else:
+            t = I - l*K
 
-    Ls = numpy.matrix(Ls)
-    Dx = X * Ls
-    Dy = Y * Ls
-    Dz = Z * Ls
+        print t.shape, X.shape
+
+        dx = X*t
+        dy = Y*t
+        dz = Z*t
+
+        X[:] = dx
+        Y[:] = dy
+        Z[:] = dz
+
+    return X, Y, Z, np
+
     
-    Dxg = gaussian_filter1d(Dx, 1)
-    Dyg = gaussian_filter1d(Dy, 1)
-    Dzg = gaussian_filter1d(Dz, 1)
 
-    #Lsn = numpy.linalg.inv(Ls)
+def main():
+    poly = load_file('monkey.ply')
+    poly.BuildLinks(0)
 
-    #Xn = Lsn * Dxg
-    #Yn = Lsn * Dyg
-    #Zn = Lsn * Dzg
+    X, Y, Z, np =taubin_smooth(poly, 0.5, -0.53)
 
-    X[:] = numpy.linalg.lstsq(Ls, Dxg.transpose())
-    Y[:] = Dyg[0, :]
-    Z[:] = Dzg[0, :]
-
-    print X.shape
-    
     V = numpy.zeros((np, 3))
     V[:,0] = X
     V[:,1] = Y
     V[:,2] = Z
 
-    poly.GetPoints().SetData(numpy_support.numpy_to_vtk(V))
-    poly.BuildLinks(0)
-    poly.BuildCells()
+
+    new_polydata = vtk.vtkPolyData()
+    new_polydata.DeepCopy(poly)
+    new_polydata.GetPoints().SetData(numpy_support.numpy_to_vtk(V))
+    new_polydata.Update()
+    #new_polydata.BuildLinks(0)
+    #new_polydata.BuildCells()
 
     w = vtk.vtkSTLWriter()
     w.SetFileName('/tmp/teste.stl')
-    w.SetInput(poly)
+    w.SetInput(new_polydata)
     w.Write()
 
 if __name__ == '__main__':
