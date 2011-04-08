@@ -113,11 +113,26 @@ def main():
     polygon_drawer = PolygonDrawer(polygon)
     smoothed_polygon_drawer = PolygonDrawer(None)
 
-    layout = gtk.HBox(True, 5)
-    layout.pack_start(polygon_drawer, True, True, 5)
-    layout.pack_start(smoothed_polygon_drawer, True, True, 5)
+    scale = gtk.HScale()
+    scale.set_range(1, 100)
+    scale.set_digits(0)
+
+    button = gtk.Button("Smooth")
+
+    hlayout = gtk.HBox(True, 5)
+    hlayout.pack_start(polygon_drawer, True, True, 5)
+    hlayout.pack_start(smoothed_polygon_drawer, True, True, 5)
+
+    hlayout2 = gtk.HBox(True, 5)
+    hlayout2.pack_start(scale, False, True, 5)
+    hlayout2.pack_start(button, False, True, 5)
+
+    main_layout = gtk.VBox(False, 5)
+    main_layout.pack_start(hlayout, True, True, 5)
+    main_layout.pack_start(hlayout2, False, True, 5)
+
     window = gtk.Window()
-    window.add(layout)
+    window.add(main_layout)
     window.connect("delete-event", gtk.main_quit)
     window.set_size_request(500, 500)
     window.show_all()
