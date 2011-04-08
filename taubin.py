@@ -18,12 +18,12 @@ def load_file(filename):
 def calculate_d(mesh, pid):
     tx, ty, tz = 0, 0, 0
     n = 0.0
-    cids = vtk.vtkIdList()
+    cell_ids = vtk.vtkIdList()
     p = mesh.GetPoint(pid)
-    mesh.GetPointCells(pid, cids)
-    for i in xrange(cids.GetNumberOfIds()):
+    mesh.GetPointCells(pid, cell_ids)
+    for i in xrange(cell_ids.GetNumberOfIds()):
         point_ids = vtk.vtkIdList()
-        mesh.GetCellPoints(cids.GetId(i), point_ids)
+        mesh.GetCellPoints(cell_ids.GetId(i), point_ids)
         n += 1
         if point_ids.GetId(0) != pid:
             np = mesh.GetPoint(point_ids.GetId(0))
@@ -34,49 +34,60 @@ def calculate_d(mesh, pid):
         ty = ty + (np[1] - p[1])
         tz = tz + (np[2] - p[2])
 
-    return tx / n, ty / n, tz / n
+    tx, ty, tz =  tx / n, ty / n, tz / n
+    return tx, ty, tz
 
         
 
-def taubin_smooth(poly, l, m):
+def taubin_smooth(poly, l, m, steps):
     trianglefilter = vtk.vtkTriangleFilter()
     trianglefilter.SetInput(poly)
     trianglefilter.Update()
 
     edgesfilter = vtk.vtkExtractEdges()
-    edgesfilter.SetInput(poly)
+    edgesfilter.SetInput(trianglefilter.GetOutput())
     edgesfilter.Update()
 
     edges = edgesfilter.GetOutput()
 
-    D = {}
-    for i in xrange(edges.GetNumberOfPoints()):
-        D[i] = calculate_d(edges, i)
+    new_poly = vtk.vtkPolyData()
+    new_poly.DeepCopy(trianglefilter.GetOutput())
 
-    points = poly.GetPoints()
-    for s in xrange(10):
+    points = new_poly.GetPoints()
+    for s in xrange(steps):
+        D = {}
+        for i in xrange(edges.GetNumberOfPoints()):
+            D[i] = calculate_d(edges, i)
         for i in xrange(poly.GetNumberOfPoints()):
             x, y, z = points.GetPoint(i)
-            if s%2 == 0:
-                x = x + l*D[i][0]
-                y = y + l*D[i][1]
-                z = z + l*D[i][2]
-            else:
-                x = x + m*D[i][0]
-                y = y + m*D[i][1]
-                z = z + m*D[i][2]
+            x = x + l*D[i][0]
+            y = y + l*D[i][1]
+            z = z + l*D[i][2]
             points.SetPoint(i, x, y, z)
 
-    poly.SetPoints(points)
+        D = {}
+        for i in xrange(edges.GetNumberOfPoints()):
+            D[i] = calculate_d(edges, i)
+        for i in xrange(poly.GetNumberOfPoints()):
+            x, y, z = points.GetPoint(i)
+            x = x + m*D[i][0]
+            y = y + m*D[i][1]
+            z = z + m*D[i][2]
+            points.SetPoint(i, x, y, z)
+
+    new_poly.SetPoints(points)
+    return new_poly
     
 
 def main():
     poly = load_file(sys.argv[1])
-    taubin_smooth(poly, 0.5, -0.53)
+    steps = int(sys.argv[3])
+    
+    new_poly = taubin_smooth(poly, 0.5, -0.53, steps)
 
     w = vtk.vtkSTLWriter()
     w.SetFileName(sys.argv[2])
-    w.SetInput(poly)
+    w.SetInput(new_poly)
     w.SetFileTypeToBinary()
     w.Write()
 
