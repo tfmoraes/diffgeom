@@ -27,7 +27,7 @@ class Polygon(object):
     def _calculate_points(self, w, h):
         self.point_to_draw = [(i*w, j*h) for i, j in self.points]
 
-    def smooth(self, steps):
+    def smooth(self, steps, lambda_):
         new_points = copy.deepcopy(self.points)
         n = len(new_points)
         for step in xrange(steps):
@@ -36,13 +36,12 @@ class Polygon(object):
                 dv[vi] = self._calculate_dvi(new_points, vi) 
 
             for vi in xrange(n):
-                new_points[vi][0] += dv[vi][0] * LAMBDA
-                new_points[vi][1] += dv[vi][1] * LAMBDA
+                new_points[vi][0] += dv[vi][0] * lambda_
+                new_points[vi][1] += dv[vi][1] * lambda_
 
-        print new_points == self.points
         return Polygon(new_points)
 
-    def taubin_smooth(self, steps):
+    def taubin_smooth(self, steps, lambda_, mu):
         new_points = copy.deepcopy(self.points)
         n = len(new_points)
         for step in xrange(steps):
@@ -51,17 +50,16 @@ class Polygon(object):
                 dv[vi] = self._calculate_dvi(new_points, vi) 
 
             for vi in xrange(n):
-                new_points[vi][0] += dv[vi][0] * LAMBDA
-                new_points[vi][1] += dv[vi][1] * LAMBDA
+                new_points[vi][0] += dv[vi][0] * lambda_
+                new_points[vi][1] += dv[vi][1] * lambda_
 
             for vi in xrange(n):
                 dv[vi] = self._calculate_dvi(new_points, vi) 
 
             for vi in xrange(n):
-                new_points[vi][0] += dv[vi][0] * MU
-                new_points[vi][1] += dv[vi][1] * MU
+                new_points[vi][0] += dv[vi][0] * mu
+                new_points[vi][1] += dv[vi][1] * mu
 
-        print new_points == self.points
         return Polygon(new_points)
 
     def _calculate_dvi(self, points, vi):
@@ -88,6 +86,7 @@ class PolygonDrawer(gtk.DrawingArea):
 
     def set_polygon(self, polygon):
         self.polygon = polygon
+        self.queue_draw()
 
     def _calculate_points(self, points, w, h):
          return [(i*w, j*h) for i, j in points]
@@ -142,9 +141,19 @@ class MainWindow(gtk.Window):
         self.smoothed_polygon_drawer = PolygonDrawer(None)
         self.taubin_smoothed_polygon_drawer = PolygonDrawer(None)
 
-        self.scale = gtk.HScale()
-        self.scale.set_range(1, 100)
-        self.scale.set_digits(0)
+        self.steps = gtk.HScale()
+        self.steps.set_range(1, 100)
+        self.steps.set_digits(0)
+
+        self.lambda_ = gtk.HScale()
+        self.lambda_.set_range(0, 1)
+        self.lambda_.set_digits(3)
+        self.lambda_.set_value(LAMBDA)
+
+        self.mu = gtk.HScale()
+        self.mu.set_range(-1, 0)
+        self.mu.set_digits(3)
+        self.mu.set_value(MU)
 
         button = gtk.Button("Smooth")
         button.connect("clicked", self.do_smooth_and_draw)
@@ -155,7 +164,9 @@ class MainWindow(gtk.Window):
         hlayout.pack_start(self.taubin_smoothed_polygon_drawer, True, True, 5)
 
         hlayout2 = gtk.HBox(True, 5)
-        hlayout2.pack_start(self.scale, False, True, 5)
+        hlayout2.pack_start(self.steps, False, True, 5)
+        hlayout2.pack_start(self.lambda_, False, True, 5)
+        hlayout2.pack_start(self.mu, False, True, 5)
         hlayout2.pack_start(button, False, True, 5)
 
         main_layout = gtk.VBox(False, 5)
@@ -168,15 +179,15 @@ class MainWindow(gtk.Window):
         self.show_all()
 
     def do_smooth_and_draw(self, widget):
-        steps = int(self.scale.get_value())
+        steps = int(self.steps.get_value())
+        lambda_ = self.lambda_.get_value()
+        mu = self.mu.get_value()
 
-        new_polygon = self.polygon.smooth(steps)
+        new_polygon = self.polygon.smooth(steps, lambda_)
         self.smoothed_polygon_drawer.set_polygon(new_polygon)
-        self.smoothed_polygon_drawer.queue_draw()
 
-        taubin_new_polygon = self.polygon.taubin_smooth(steps)
+        taubin_new_polygon = self.polygon.taubin_smooth(steps, lambda_, mu)
         self.taubin_smoothed_polygon_drawer.set_polygon(taubin_new_polygon)
-        self.taubin_smoothed_polygon_drawer.queue_draw()
 
 def main():
     window = MainWindow()
