@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import copy
 import math
 import random
 
@@ -15,6 +16,7 @@ RADIUS = 2.0
 
 LAMBDA = 0.63
 MU = -0.67
+STEPS = 10
 
 class Polygon(object):
     def __init__(self, points):
@@ -27,25 +29,34 @@ class Polygon(object):
         self.point_to_draw = [(i*w, j*h) for i, j in self.points]
 
     def smooth(self):
-        new_points = self.points[:]
+        new_points = copy.deepcopy(self.points)
         n = len(new_points)
-        for step in xrange(10):
+        for step in xrange(STEPS):
             dv = {}
-            for vi in xrange(new_points):
-                dv[vi] = 0.5 * (new_points[(vi - 1)%n] - new_points[vi]) + \
-                         0.5 * (new_points[(vi + 1)%n] - new_points[vi]) 
+            for vi in xrange(n):
+                dv[vi] = self._calculate_dvi(new_points, vi) 
 
-            for vi in xrange(new_points):
-                new_points[vi] += dv[vi] * LAMBDA
+            for vi in xrange(n):
+                new_points[vi][0] += dv[vi][0] * LAMBDA
+                new_points[vi][1] += dv[vi][1] * LAMBDA
 
-            for vi in xrange(new_points):
-                dv[vi] = 0.5 * (new_points[(vi - 1)%n] - new_points[vi]) + \
-                         0.5 * (new_points[(vi + 1)%n] - new_points[vi]) 
+            for vi in xrange(n):
+                dv[vi] = self._calculate_dvi(new_points, vi) 
 
-            for vi in xrange(new_points):
-                new_points[vi] += dv[vi] * MU
+            for vi in xrange(n):
+                new_points[vi][0] += dv[vi][0] * MU
+                new_points[vi][1] += dv[vi][1] * MU
 
+        print new_points == self.points
         return Polygon(new_points)
+
+    def _calculate_dvi(self, points, vi):
+        n = len(points)
+        x = 0.5 * (points[(vi - 1)%n][0] - points[vi][0]) + \
+                0.5 * (points[(vi + 1)%n][0] - points[vi][0]) 
+        y = 0.5 * (points[(vi - 1)%n][1] - points[vi][1]) + \
+                0.5 * (points[(vi + 1)%n][1] - points[vi][1]) 
+        return x, y
 
 
 
@@ -107,36 +118,48 @@ class PolygonDrawer(gtk.DrawingArea):
         ctx.arc(x, y, RADIUS, 0.0, 2 * math.pi)
         ctx.fill()
 
+
+class MainWindow(gtk.Window):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+
+        self.polygon = Polygon([])
+        self.polygon_drawer = PolygonDrawer(self.polygon)
+        self.smoothed_polygon_drawer = PolygonDrawer(None)
+
+        self.scale = gtk.HScale()
+        self.scale.set_range(1, 100)
+        self.scale.set_digits(0)
+
+        button = gtk.Button("Smooth")
+        button.connect("clicked", self.do_smooth_and_draw)
+
+        hlayout = gtk.HBox(True, 5)
+        hlayout.pack_start(self.polygon_drawer, True, True, 5)
+        hlayout.pack_start(self.smoothed_polygon_drawer, True, True, 5)
+
+        hlayout2 = gtk.HBox(True, 5)
+        hlayout2.pack_start(self.scale, False, True, 5)
+        hlayout2.pack_start(button, False, True, 5)
+
+        main_layout = gtk.VBox(False, 5)
+        main_layout.pack_start(hlayout, True, True, 5)
+        main_layout.pack_start(hlayout2, False, True, 5)
+
+        self.add(main_layout)
+        self.connect("delete-event", gtk.main_quit)
+        self.set_size_request(500, 500)
+        self.show_all()
+
+    def do_smooth_and_draw(self, widget):
+        global STEPS
+        STEPS = int(self.scale.get_value())
+        new_polygon = self.polygon.smooth()
+        self.smoothed_polygon_drawer.set_polygon(new_polygon)
+        self.smoothed_polygon_drawer.queue_draw()
+
 def main():
-    polygon = Polygon([])
-
-    polygon_drawer = PolygonDrawer(polygon)
-    smoothed_polygon_drawer = PolygonDrawer(None)
-
-    scale = gtk.HScale()
-    scale.set_range(1, 100)
-    scale.set_digits(0)
-
-    button = gtk.Button("Smooth")
-
-    hlayout = gtk.HBox(True, 5)
-    hlayout.pack_start(polygon_drawer, True, True, 5)
-    hlayout.pack_start(smoothed_polygon_drawer, True, True, 5)
-
-    hlayout2 = gtk.HBox(True, 5)
-    hlayout2.pack_start(scale, False, True, 5)
-    hlayout2.pack_start(button, False, True, 5)
-
-    main_layout = gtk.VBox(False, 5)
-    main_layout.pack_start(hlayout, True, True, 5)
-    main_layout.pack_start(hlayout2, False, True, 5)
-
-    window = gtk.Window()
-    window.add(main_layout)
-    window.connect("delete-event", gtk.main_quit)
-    window.set_size_request(500, 500)
-    window.show_all()
-
+    window = MainWindow()
     gtk.main()
 
 if __name__ == '__main__':
