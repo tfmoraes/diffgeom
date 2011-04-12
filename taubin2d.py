@@ -70,6 +70,13 @@ class Polygon(object):
                 0.5 * (points[(vi + 1)%n][1] - points[vi][1]) 
         return x, y
 
+    def calculate_vectors(self):
+        n = len(self.points)
+        vectors = []
+        for vi in xrange(n):
+            vectors.append(self._calculate_dvi(self.points, vi))
+        return vectors
+
 
 
 class PolygonDrawer(gtk.DrawingArea):
@@ -83,9 +90,14 @@ class PolygonDrawer(gtk.DrawingArea):
                         gdk.POINTER_MOTION_MASK)
 
         self.polygon = polygon
+        self._show_vectors = False
 
     def set_polygon(self, polygon):
         self.polygon = polygon
+        self.queue_draw()
+
+    def show_vectors(self, value):
+        self._show_vectors = value
         self.queue_draw()
 
     def _calculate_points(self, points, w, h):
@@ -115,17 +127,26 @@ class PolygonDrawer(gtk.DrawingArea):
         ctx.fill()
         ctx.set_source_rgb(0, 0, 0)
         ctx.stroke()
+        ctx.set_line_width(2)
         if self.polygon and self.polygon.points:
             vertices = self._calculate_points(self.polygon.points, w, h)
             for x,y in vertices:
                 self._draw_point(ctx, x, y)
 
-            ctx.set_line_width(0.5)
+            #ctx.set_line_width(0.5)
             ctx.move_to(*vertices[0])
             for x,y in vertices:
                 ctx.line_to(x, y)
             ctx.line_to(*vertices[0])
             ctx.stroke()
+
+            if self._show_vectors:
+                ctx.set_source_rgb(1, 0, 0)
+                vectors = self._calculate_points(self.polygon.calculate_vectors(), w, h)
+                for n, v in enumerate(vertices):
+                    ctx.move_to(*v)
+                    ctx.line_to(vectors[n][0] + v[0], vectors[n][1] + v[1])
+                ctx.stroke()
 
     def _draw_point(self, ctx, x, y):
         ctx.arc(x, y, RADIUS, 0.0, 2 * math.pi)
@@ -158,6 +179,9 @@ class MainWindow(gtk.Window):
         button = gtk.Button("Smooth")
         button.connect("clicked", self.do_smooth_and_draw)
 
+        bvectors = gtk.Button("Draw vectors")
+        bvectors.connect("clicked", self.do_show_vectors)
+
         hlayout = gtk.HBox(True, 5)
         hlayout.pack_start(self.polygon_drawer, True, True, 5)
         hlayout.pack_start(self.smoothed_polygon_drawer, True, True, 5)
@@ -168,6 +192,7 @@ class MainWindow(gtk.Window):
         hlayout2.pack_start(self.lambda_, False, True, 5)
         hlayout2.pack_start(self.mu, False, True, 5)
         hlayout2.pack_start(button, False, True, 5)
+        hlayout2.pack_start(bvectors, False, True, 5)
 
         main_layout = gtk.VBox(False, 5)
         main_layout.pack_start(hlayout, True, True, 5)
@@ -188,6 +213,11 @@ class MainWindow(gtk.Window):
 
         taubin_new_polygon = self.polygon.taubin_smooth(steps, lambda_, mu)
         self.taubin_smoothed_polygon_drawer.set_polygon(taubin_new_polygon)
+
+    def do_show_vectors(self, widget):
+        self.polygon_drawer.show_vectors(True)
+        self.smoothed_polygon_drawer.show_vectors(True)
+        self.taubin_smoothed_polygon_drawer.show_vectors(True)
 
 def main():
     window = MainWindow()
