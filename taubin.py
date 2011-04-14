@@ -14,20 +14,20 @@ def load_file(filename):
     reader.Update()
     return reader.GetOutput()
 
-def calculate_d(mesh, pid):
+def calculate_d(mesh, poly, pid):
     t = 0
     n = 0.0
     cell_ids = vtk.vtkIdList()
-    p0 = np.array(mesh.GetPoint(pid))
+    p0 = np.array(poly.GetPoint(pid))
     mesh.GetPointCells(pid, cell_ids)
     for i in xrange(cell_ids.GetNumberOfIds()):
         point_ids = vtk.vtkIdList()
         mesh.GetCellPoints(cell_ids.GetId(i), point_ids)
         n += 1
         if point_ids.GetId(0) != pid:
-            p1 = np.array(mesh.GetPoint(point_ids.GetId(0)))
+            p1 = np.array(poly.GetPoint(point_ids.GetId(0)))
         else:
-            p1 = np.array(mesh.GetPoint(point_ids.GetId(1)))
+            p1 = np.array(poly.GetPoint(point_ids.GetId(1)))
 
         t = t + (p1 - p0)
 
@@ -50,7 +50,7 @@ def taubin_smooth(poly, l, m, steps):
     for s in xrange(steps):
         D = {}
         for i in xrange(edges.GetNumberOfPoints()):
-            D[i] = calculate_d(edges, i)
+            D[i] = calculate_d(edges, new_poly, i)
         for i in xrange(poly.GetNumberOfPoints()):
             p = np.array(points.GetPoint(i))
             pl = p + l*D[i]
@@ -59,7 +59,7 @@ def taubin_smooth(poly, l, m, steps):
 
         D = {}
         for i in xrange(edges.GetNumberOfPoints()):
-            D[i] = calculate_d(edges, i)
+            D[i] = calculate_d(edges, new_poly, i)
         for i in xrange(poly.GetNumberOfPoints()):
             p = np.array(points.GetPoint(i))
             pl = p + m*D[i]
