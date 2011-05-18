@@ -14,12 +14,28 @@ class Triangle(object):
                        [point[0], point[1], point[0]**2 + point[1]**2,1]])
         return np.linalg.det(m) > 0
 
+class Node(object):
+    def __init__(self, triangle):
+        self.triangle = triangle
+        self.children = None
+
 class Tree(object):
-    def __init__(self):
-        pass
+    def __init__(self, triangle_root):
+        self.triangles = [triangle_root]
+        self.root = Node(triangle_root)
 
     def add(self, point):
-        pass
+        if self.root.children:
+            pass
+        else:
+            t0 = self.triangles[0]
+            t1 = Triangle(point, t0.p0, t0.p1)
+            t2 = Triangle(point, t0.p1, t0.p2)
+            t3 = Triangle(point, t0.p2, t0.p0)
+
+            t0.children = [t1, t2, t3]
+        
+        
 
 
 class DelaunayTriangulation(object):
@@ -32,9 +48,12 @@ class DelaunayTriangulation(object):
         p_1 = self.points[0] - 1, 1000
         p_2 = self.points[-1] + 1, -1000
 
+        t0 = Triangle(p0, p_1, p_2)
+        self.tree = Tree(t0)
+
         vertices = self.points[:-1]
         np.random.shuffle(vertices)
 
         for r in vertices:
-            pass
+            self.tree.add(r)
 
