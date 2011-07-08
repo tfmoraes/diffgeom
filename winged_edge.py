@@ -7,6 +7,39 @@ class WShape(object):
         self.next = None
         self.previous = None
 
+    def set_wings(self, e1, e2):
+        if e1.avertex == e2.avertex:
+            if e1.bface == e2.bface:
+                e1.bCWedge = e2
+                e2.aCCWedge = e1
+            elif e1.aface == e2.bface:
+                e1.aCCWedge = e2
+                e2.bCWedge = e1
+
+        elif e1.avertex == e2.bvertex:
+            if e1.bface == e2.bface:
+                e1.bCWedge = e2
+                e2.bCCWedge = e1
+            elif e1.aface == e2.bface:
+                e1.aCCWedge = e2
+                e2.aCWedge = e1
+
+        elif e1.bvertex == e2.avertex:
+            if e1.aface == e2.aface:
+                e1.aCWedge = e2
+                e2.aCCWedge = e1
+            elif e1.bface == e2.bface:
+                e1.bCCWedge = e2
+                e2.bCWedge = e1
+
+        elif e1.bvertex == e2.bvertex:
+            if e1.aface == e2.bface:
+                e1.aCWedge = e2
+                e2.bCCWedge = e1
+            elif e1.bface == e2.aface:
+                e1.bCCWedge = e2
+                e2.aCWedge = e1
+
 
 class WFace(object):
     def __init__(self):
@@ -45,4 +78,3 @@ class WEdgeData(object):
         self.bface = None
         self.owner = None
         
-
