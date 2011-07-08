@@ -1,62 +1,48 @@
-class Edge:
-    def __init__(self, name):
-        self.name = name
-        self.vstart = None
-        self.vend = None
+class WShape(object):
+    def __init__(self):
+        self.index = 0
+        self.vertex_ring = None
+        self.edge_ring = None
+        self.face_ring = None
+        self.next = None
+        self.previous = None
 
-        self.fleft = None
-        self.fright = None
 
-        self.ltpred = None
-        self.ltsucc = None
+class WFace(object):
+    def __init__(self):
+        self.index = 0
+        self.edge_ring = None
+        self.next = None
+        self.previous = None
 
-        self.rtpred = None
-        self.rtsucc = None
 
-class Vertex:
-    def __init__(self, name):
-        self.name = name
-        self.incident_edge = None
+class WEdge(object):
+    def __init__(self):
+        self.edge_data = None
+        self.next = None
+        self.previous = None
 
-class Face:
-    def __init__(self, name):
-        self.name = name
-        self.incident_edge = None
 
-class WingedEdge(object):
-    def __init__(self, points):
-        self.points = points
-        self.faces = {}
-        self.vertex = {}
-        self.edges = {}
+class WVertex(object):
+    def __init__(self):
+        self.index = 0
+        self.point = 0, 0, 0
+        self.edge_ring = None
+        self.next = None
+        self.previous = None
 
-        self.edge_table = {}
-        self.vertex_table = {}
-        self.face_table = {}
-    
-    def add_face(self, name, p0, p1, p2):
-        self.faces[name] = Face(name)
-        self.face_table[name] = Face(name)
 
-        if self.vertex_table[p0]:
-            e = self.vertex_table[p0].incident_edge
-            if e.vend == p1:
-                self.face_table[name].incident_edge = e.name
-            else:
-                e_id = len(self.edge_table)
-                edge = Edge(e_id)
-
-                edge.vstart = p0
-                edge.vend = p1
-
-                edge.fleft = name
-
-                self.vertex_table[p0].incident_edge = e_id
-                self.face_table[name].incident_edge = e_id
-                
+class WEdgeData(object):
+    def __init__(self):
+        self. = index
+        self.aCWedge = None
+        self.bCWedge = None
+        self.aCCWedge = None
+        self.bCCWedge = None
+        self.avertex = None
+        self.bvertex = None
+        self.aface = None
+        self.bface = None
+        self.owner = None
         
-        id_edge = len(self.vextex)
-        self.vertex[id_edge] = p0, p1
-        self.vertex[id_edge + 1] = p1, p2
-        self.vertex[id_edge + 2] = p2, p0
 
