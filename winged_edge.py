@@ -58,7 +58,29 @@ class WShape(object):
         Takes a vertex, a face, and a direction and returns the next face
         around that vertex in the given direction.
         """
-
+        for e in face.edge_ring:
+            if direction == CW:
+                if face == e.aface:
+                    if e.avertex == v:
+                        return face_across_edge(e.edge_data.aCCWedge, face)
+                    elif e.bvertex == v:
+                        return face_across_edge(e, face)
+                elif face == e.bface:
+                    if e.avertex == v:
+                        return face_across_edge(e, face)
+                    elif e.bvertex == v:
+                        return face_across_edge(e.edge_data.bCCWedge, face)
+            elif direction == CCW:
+                if face == e.aface:
+                    if e.avertex == v:
+                        return face_across_edge(e, face)
+                    elif e.bvertex == v:
+                        return face_across_edge(e.edge_data.aCWedge, face)
+                elif face == e.bface:
+                    if e.avertex == v:
+                        return face_across_edge(e.edge_data.bCWedge, face)
+                    elif e.bvertex == v:
+                        return face_across_edge(e, face)
 
 class WFace(object):
     def __init__(self):
@@ -86,7 +108,7 @@ class WVertex(object):
 
 class WEdgeData(object):
     def __init__(self):
-        self. = index
+        self.index = 0
         self.aCWedge = None
         self.bCWedge = None
         self.aCCWedge = None
