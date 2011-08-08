@@ -82,6 +82,26 @@ class WShape(object):
                     elif e.bvertex == v:
                         return face_across_edge(e, face)
 
+    def split_edge(self, edge):
+        v0 = edge.edge_data.avertex.point
+        v1 = edge.edge_data.bvertex.point
+        v2 = (v0 + v1) / 2.0
+        
+        en = WEdge()
+        vn = WVertex() 
+        vn.point = v2
+
+        self.edge_ring.append(en)
+        self.vertex_ring.append(vn)
+
+        edge.edge_data.aface.edge_ring.append(en)
+        edge.edge_data.bface.edge_ring.append(en)
+
+        en.edge_data.avertex = vn
+        en.edge_data.bvertex = edge.edge_data.bvertex
+        edge.edge_data.bvertex = vn
+    
+
 class WFace(object):
     def __init__(self):
         self.index = 0
