@@ -110,6 +110,22 @@ class WShape(object):
         edge.edge_data.bCCWedge = en
         edge.edge_data.aCCWedge = en
 
+    def remove_edge(self, edge):
+        edge.edge_data.avertex = None
+        edge.edge_data.bvertex = None
+
+        # STEP 3: Repoint all edges pointing to face b to point to face a
+        for e in edge.edge_data.bface.edge_ring:
+            if e.edge_data.aface == edge.edge_data.bface:
+                e.edge_data.aface = edge_data.aface
+            else:
+                e.edge_data.bface = edge_data.aface
+
+        # TODO: STEP 4, 5 and 6
+        del edge.edge_data.bface
+        del edge
+
+
     
 
 class WFace(object):
