@@ -100,6 +100,16 @@ class WShape(object):
         en.edge_data.avertex = vn
         en.edge_data.bvertex = edge.edge_data.bvertex
         edge.edge_data.bvertex = vn
+
+        en.edge_data.aCWedge = edge.edge_data.aCWedge
+        en.edge_data.bCCWedge = edge.edge_data.bCCWedge
+
+        en.edge_data.bCWedge = edge
+        en.edge_data.aCCWedge = edge
+
+        edge.edge_data.bCCWedge = en
+        edge.edge_data.aCCWedge = en
+
     
 
 class WFace(object):
